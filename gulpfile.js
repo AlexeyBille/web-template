@@ -4,6 +4,7 @@
 		browserSync    = require('browser-sync'),
 		concat         = require('gulp-concat'),
 		uglify         = require('gulp-uglify'),
+		uglifycss	   = require('gulp-uglifycss'),
 		cleanCSS       = require('gulp-clean-css'),
 		rename         = require('gulp-rename'),
 		del            = require('del'),
@@ -14,7 +15,15 @@
 		fileinclude    = require('gulp-file-include'),
 		gulpRemoveHtml = require('gulp-remove-html'),
 		bourbon        = require('node-bourbon'),
-		ftp            = require('vinyl-ftp');
+		ftp            = require('vinyl-ftp'),
+		htmlmin 	   = require('gulp-htmlmin');
+
+gulp.task('minify', function() {
+  return gulp.src('src/*.html')
+    .pipe(htmlmin({collapseWhitespace: true}))
+    .pipe(gulp.dest('dist'));
+});
+		
 
 gulp.task('browser-sync', function() {
 	browserSync({
@@ -52,7 +61,8 @@ gulp.task('headersass', function() {
 gulp.task('libs', function() {
 	return gulp.src([
 		'src/libs/jquery/dist/jquery.min.js', // Берем jQuery
-		'src/libs/bootstrap/dist/js/bootstrap.min.js', // Берем Magnific Popup
+		'src/libs/bootstrap/dist/js/bootstrap.min.js', // Берем bootstrap
+		'src/libs/jquery-sticky/jquery.sticky.js', // Берем sticky
 		'src/libs/parallax.js/parallax.min.js' // Берем parallax.js
 		])
 		.pipe(concat('libs.min.js'))
@@ -60,7 +70,17 @@ gulp.task('libs', function() {
 		.pipe(gulp.dest('src/js'));
 });
 
-gulp.task('watch', ['sass', 'libs', 'browser-sync'], function() {
+gulp.task('csslibs', function() {
+	return gulp.src([
+		'src/libs/font-awesome/css/font-awesome.min.css'
+		])
+		.pipe(concat('libs.min.css'))
+		.pipe(uglifycss())
+		.pipe(gulp.dest('src/css'));
+});
+
+
+gulp.task('watch', ['sass', 'libs', 'browser-sync', 'csslibs'], function() {
 	gulp.watch('src/header.scss', ['headersass']);
 	gulp.watch('src/scss/**/*.scss', ['sass']);
 	gulp.watch('src/*.html', browserSync.reload);
@@ -83,17 +103,19 @@ gulp.task('buildhtml', function() {
     .pipe(fileinclude({
       prefix: '@@'
     }))
-    .pipe(gulpRemoveHtml())
+	.pipe(htmlmin({collapseWhitespace: true}))
+	.pipe(gulpRemoveHtml())
     .pipe(gulp.dest('dist/'));
 });
 
 gulp.task('removedist', function() { return del.sync('dist'); });
 
-gulp.task('build', ['removedist', 'buildhtml', 'imagemin', 'sass', 'libs'], function() {
+gulp.task('build', ['removedist', 'buildhtml', 'imagemin', 'sass', 'libs', 'csslibs'], function() {
 
 	var buildCss = gulp.src([
 		'src/css/fonts.min.css',
-		'src/css/main.min.css'
+		'src/css/main.min.css',
+		'src/css/libs.min.css'
 		]).pipe(gulp.dest('dist/css'));
 
 	var buildFiles = gulp.src([
